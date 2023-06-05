@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Управление сессиями</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Управление сессиями</h1>
+
+    <!-- Форма для создания сессии -->
+    <h2>Создать сессию:</h2>
+    <form id="createForm">
+      <div class="form-group">
+        <label>ФИО:</label>
+        <input type="text" class="form-control" name="fio" required>
+      </div>
+      <div class="form-group">
+        <label>Группа:</label>
+        <input type="text" class="form-control" name="group" required>
+      </div>
+      <div class="form-group">
+        <label>Предмет:</label>
+        <input type="text" class="form-control" name="subject" required>
+      </div>
+      <div class="form-group">
+        <label>Оценка:</label>
+        <input type="number" class="form-control" name="grade" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Создать</button>
+    </form>
+
+    <!-- Таблица для отображения сессий -->
+    <h2>Список сессий:</h2>
+    <table id="sessionsTable" class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>ФИО</th>
+          <th>Группа</th>
+          <th>Предмет</th>
+          <th>Оценка</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    // Запрос всех сессий и отображение в таблице
+    fetch('/sessions')
+      .then(response => response.json())
+      .then(data => {
+        const table = document.getElementById('sessionsTable').getElementsByTagName('tbody')[0];
+        data.forEach(session => {
+          const row = table.insertRow();
+          row.insertCell().textContent = session.id;
+          row.insertCell().textContent = session.fio;
+          row.insertCell().textContent = session.group_name;
+          row.insertCell().textContent = session.subject;
+          row.insertCell().textContent = session.grade;
+          const actionsCell = row.insertCell();
+          const editButton = document.createElement('button');
+          editButton.textContent = 'Редактировать';
+          editButton.classList.add('btn', 'btn-primary', 'mr-1');
+          editButton.addEventListener('click', () => editSession(session.id));
+          actionsCell.appendChild(editButton);
+          const deleteButton = document.createElement('button');
+          deleteButton.textContent = 'Удалить';
+          deleteButton.classList.add('btn', 'btn-danger');
+          deleteButton.addEventListener('click', () => deleteSession(session.id));
+          actionsCell.appendChild(deleteButton);
+        });
+      });
+
+    // Обработка создания сессии
+    const createForm = document.getElementById('createForm');
+    createForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const formData = new FormData(createForm);
+      fetch('/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(formData))
+      })
+        .then(response => response.json())
+        .then(data => {
+          const table = document.getElementById('sessionsTable').getElementsByTagName('tbody')[0];
+          const row = table.insertRow();
+          row.insertCell().textContent = data.id;
+          row.insertCell().textContent = formData.get('fio');
+          row.insertCell().textContent = formData.get('group');
+          row.insertCell().textContent = formData.get('subject');
+          row.insertCell().textContent = formData.get('grade');
+          const actionsCell = row.insertCell();
+          const editButton = document.createElement('button');
+          editButton.textContent = 'Редактировать';
+          editButton.classList.add('btn', 'btn-primary', 'mr-1');
+          editButton.addEventListener('click', () => editSession(data.id));
+          actionsCell.appendChild(editButton);
+          const deleteButton = document.createElement('button');
+          deleteButton.textContent = 'Удалить';
+          deleteButton.classList.add('btn', 'btn-danger');
+          deleteButton.addEventListener('click', () => deleteSession(data.id));
+          actionsCell.appendChild(deleteButton);
+          createForm.reset();
+        });
+    });
+
+    // Обработка редактирования сессии
+    function editSession(id) {
+      const fio = prompt('Введите новое ФИО:');
+      const group = prompt('Введите новую группу:');
+      const subject = prompt('Введите новый предмет:');
+      const grade = prompt('Введите новую оценку:');
+      fetch(`/sessions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fio, group, subject, grade })
+      })
+        .then(() => {
+          const row = document.querySelector(`#sessionsTable tbody tr:nth-child(${id})`);
+          row.cells[1].textContent = fio;
+          row.cells[2].textContent = group;
+          row.cells[3].textContent = subject;
+          row.cells[4].textContent = grade;
+        });
+    }
+
+    // Обработка удаления сессии
+    function deleteSession(id) {
+      if (confirm('Вы уверены, что хотите удалить сессию?')) {
+        fetch(`/sessions/${id}`, {
+          method: 'DELETE'
+        })
+          .then(() => {
+            const row = document.querySelector(`#sessionsTable tbody tr:nth-child(${id})`);
+            row.remove();
+          });
+      }
+    }
+  </script>
+</body>
+</html>
